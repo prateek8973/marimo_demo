@@ -5,18 +5,17 @@ import matplotlib.pyplot as plt
 
 # ---------------------------
 # Initialize the Marimo app
+# 22f3000812@ds.study.iitm.ac.in
 # ---------------------------
-app = marimo.App(width="medium")  # The main app object
+# This is the main app object that will be passed to the last cell to run the app.
+app = marimo.App(width="medium")
 
-# ---------------------------
-# 1. Create synthetic dataset
-# ---------------------------
-def create_dataset():
-    """
-    Create a simple synthetic dataset for linear regression demonstration.
-    Returns:
-        df (DataFrame): Contains columns 'x' and 'y'
-    """
+# ----------------------------------------
+# Cell 1: Create synthetic dataset (df)
+# ----------------------------------------
+# This cell outputs `df`, which will be consumed by the plotting cell.
+@app.cell
+def dataset_cell():
     np.random.seed(42)
     df = pd.DataFrame({
         "x": np.linspace(0, 10, 50),
@@ -24,42 +23,26 @@ def create_dataset():
     })
     return df
 
-# Make it a Marimo cell
+# ----------------------------------------
+# Cell 2: Create slope slider
+# ----------------------------------------
+# This cell outputs `slope_slider`, which will be consumed by the plotting cell.
 @app.cell
-def dataset_cell():
-    df = create_dataset()
-    return df  # Will be used by plotting cell
-
-# ---------------------------
-# 2. Slope slider
-# ---------------------------
-def create_slope_slider():
-    """
-    Create a Marimo slider widget for adjusting the slope.
-    Returns:
-        slope_slider: Marimo slider object
-    """
+def slope_slider_cell():
     import marimo as mo
     slope_slider = mo.ui.slider(
         start=0.5, stop=3.0, step=0.1, value=2.0, label="Slope"
     )
     return slope_slider
 
+# ----------------------------------------
+# Cell 3: Plot data and line
+# ----------------------------------------
+# This cell consumes `df` and `slope_slider`.
+# It produces `slope` as output for the summary cell.
 @app.cell
-def slope_slider_cell():
-    slider = create_slope_slider()
-    return slider  # Will be used by plotting and summary cells
-
-# ---------------------------
-# 3. Plotting function
-# ---------------------------
-def plot_data_with_slope(df, slope):
-    """
-    Plot the data and overlay a line with the given slope.
-    Args:
-        df (DataFrame): Dataset with 'x' and 'y'
-        slope (float): Slope of the red line
-    """
+def plot_cell(df, slope_slider):
+    slope = slope_slider.value
     plt.figure(figsize=(6,4))
     plt.scatter(df["x"], df["y"], label="Data")
     plt.plot(df["x"], slope * df["x"], color="red", label=f"y = {slope}x")
@@ -68,21 +51,17 @@ def plot_data_with_slope(df, slope):
     plt.legend()
     plt.grid(True)
     plt.show()
+    return slope  # This value will be used by the summary cell
 
+# ----------------------------------------
+# Cell 4: Markdown summary
+# ----------------------------------------
+# This cell consumes `slope` from the plotting cell.
+# It does not produce further output.
 @app.cell
-def plot_cell(df, slope_slider):
-    slope = slope_slider.value
-    plot_data_with_slope(df, slope)
-    return slope  # Return slope for summary cell
-
-# ---------------------------
-# 4. Markdown summary
-# ---------------------------
-def show_analysis_summary(slope):
-    """
-    Display a markdown summary showing the effect of the slope.
-    """
+def summary_cell(plot_cell_output):
     import marimo as mo
+    slope = plot_cell_output
     mo.md(f"""
     ### Analysis Summary  
     The current slope is **{slope:.2f}**.  
@@ -90,13 +69,10 @@ def show_analysis_summary(slope):
     This demonstrates the effect of the slope parameter on a simple linear model.
     """)
 
-@app.cell
-def summary_cell(plot_cell_output):
-    slope = plot_cell_output
-    show_analysis_summary(slope)
-
-# ---------------------------
-# 5. Run the app
-# ---------------------------
+# ----------------------------------------
+# Cell 5: Run the app
+# ----------------------------------------
+# This cell consumes the `app` object initialized at the top.
+# It is responsible for launching the Marimo interface.
 if __name__ == "__main__":
     app.run()
